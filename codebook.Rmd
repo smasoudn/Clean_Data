@@ -1,0 +1,91 @@
+---
+title: "codebook.md"
+author: "Masoud S. Nosrati"
+date: "August 12, 2016"
+output: html_document
+---
+
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```
+
+First load necessary libraries:
+
+```{r,echo=FALSE, include=FALSE, results="hide"}
+library(dplyr)
+library(tidyr)
+library(data.table)
+
+dataset_path <- "./UCI HAR Dataset/"
+```
+
+Now, read training data including training set, training labels, and training subjects:
+
+```{r}
+train_set <- read.table(file.path(dataset_path, "train","X_train.txt"))
+train_label <- read.table(file.path(dataset_path, "train","Y_train.txt"))
+train_subjects <- read.table(file.path(dataset_path, "train", "subject_train.txt"))
+```
+Read test data including test set, test labels, and test subjects
+```{r}
+test_set <- read.table(file.path(dataset_path, "test","X_test.txt") )
+test_label <- read.table(file.path(dataset_path, "test","Y_test.txt"))
+test_subjects <- read.table(file.path(dataset_path, "test", "subject_test.txt"))
+```
+Read variables and activity labels
+```{r}
+variables <- read.table(file.path(dataset_path, "features.txt"))
+activity_labels <- read.table(file.path(dataset_path, "activity_labels.txt"))
+```
+
+Add subject and labels to the training and test set and re-arranging columns:
+
+```{r}
+train_set2 <- train_set %>%
+    mutate(subject = as.numeric(train_subjects$V1))  %>%
+    mutate(activity_label = as.numeric(train_label$V1)) %>%
+    select(subject, V1:V561, activity_label)
+
+test_set2 <- test_set %>%
+    mutate(subject = as.numeric(test_subjects$V1))  %>%
+    mutate(activity_label = as.numeric(test_label$V1)) %>%
+    select(subject, V1:V561, activity_label)
+```
+
+Now, we merge training and test data:
+```{r}
+merged_data <- rbind(train_set2, test_set2)
+```
+
+Next step is to rename variables and use meaningful names:
+```{r}
+names(merged_data) <- c("subject",  as.character(variables$V2), "activity_label")
+```
+
+According to the project description, we only need **mean** and **std** of the measurements. Therefore, we filter out mean and std-based variables :
+
+```{r}
+mean_std_idx <- grep("mean|Std", names(merged_data), ignore.case=TRUE)
+mean_std_data <- merged_data[,c(1,mean_std_idx, 563)]
+```
+
+The following script adds descriptive activity names to the data set:
+```{r}
+mean_std_data$activity <- activity_labels[mean_std_data[,"activity_label"],2]
+mean_std_data$activity <- as.factor(mean_std_data$activity)
+```
+
+The final step is to analyze the data and report a group-wise summary.
+
+```{r}
+new_dataset <- mean_std_data %>%
+    group_by(activity, subject) %>%
+    summarise_each(funs(mean))
+
+print(new_dataset)
+write.table(new_dataset, file = file.path(dataset_path, "new_tidy_dataset.txt"))
+```
+
+    
+        
+
