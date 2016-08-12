@@ -83,7 +83,7 @@ new_dataset <- mean_std_data %>%
     summarise_each(funs(mean))
 
 print(new_dataset)
-write.table(new_dataset, file = file.path(dataset_path, "new_tidy_dataset.txt"))
+write.table(new_dataset, file = file.path(dataset_path, "new_tidy_dataset.txt"), row.name = FALSE)
 ```
 
     
